@@ -1,35 +1,36 @@
-#include <ezButton.h>
+const int vrXPin = A0;  // Replace with your VRX pin
+const int vrYPin = A1;  // Replace with your VRY pin
+const int threshold = 50;  // Adjust threshold for analog reading sensitivity
 
-#define VRX_PIN A0  // Arduino pin connected to VRX pin
-#define VRY_PIN A1  // Arduino pin connected to VRY pin
-#define SW_PIN  2   // Arduino pin connected to SW pin
-
-ezButton button(SW_PIN);
-
-const String buttonPressed = "button_pressed";
-const String buttonReleased = "button_released";
-const String joystickMove = "joystick_move";
+int vrXValue = 0;
+int vrYValue = 0;
 
 void setup() {
-  Serial.begin(9600);
-  button.setDebounceTime(50); // set debounce time to 50 milliseconds
+  Serial.begin(115200);
+  while (!Serial) {
+    ;  // Wait for serial connection
+  }
 }
 
 void loop() {
-  button.loop(); // MUST call the loop() function first
+  vrXValue = analogRead(vrXPin);
+  vrYValue = analogRead(vrYPin);
 
-  // read analog X and Y analog values
-  int xValue = analogRead(VRX_PIN);
-  int yValue = analogRead(VRY_PIN);
-
-  // Read the button value
-  int bValue = button.getState();
-
-  if (button.isPressed()) {
-    Serial.println(buttonPressed);
-  } else if (button.isReleased()) {
-    Serial.println(buttonReleased);
+  // Apply threshold (optional) to avoid sending small joystick movements
+  if (abs(vrXValue - 512) > threshold) {
+    vrXValue = map(vrXValue, 0, 1023, -127, 127);  // Map to -127 (left) to 127 (right)
   } else {
-    Serial.println(joystickMove + " " + String(xValue) + " " + String(yValue));
+    vrXValue = 0;  // Set to 0 for small movements (centered)
   }
+
+  if (abs(vrYValue - 512) > threshold) {
+    vrYValue = map(vrYValue, 0, 1023, -127, 127);  // Map to -127 (up) to 127 (down)
+  } else {
+    vrYValue = 0;  // Set to 0 for small movements (centered)
+  }
+
+  // Send VRX and VRY values over serial (modify format if needed)
+  Serial.print(vrXValue);
+  Serial.print(',');
+  Serial.println(vrYValue);
 }
